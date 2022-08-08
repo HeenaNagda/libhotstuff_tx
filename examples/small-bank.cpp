@@ -90,7 +90,7 @@ void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> pay
     for(auto payor: payors){
         amount += payor.second;
     }
-    auto amount_to_transfer = amount/party.size();
+    auto amount_to_pay = amount/party.size();
 
     /* validity check */
     for(auto payor: payors){
@@ -100,7 +100,7 @@ void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> pay
         }
     }
     for(auto user_id: party){
-        if(UINT64_MAX-checking_accounts[user_id] < amount_to_transfer){
+        if(UINT64_MAX-checking_accounts[user_id] < amount_to_pay){
             /* If amount is exceded to the maximum limit of uint64_t : discart transaction */
             return;
         }
@@ -108,10 +108,10 @@ void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> pay
 
     /* Do transaction */
     for(auto payor: payors){
-        
+        checking_accounts[payor.first] += payor.second;
     }
     for(auto user_id: party){
-
+        checking_accounts[user_id] -= amount_to_pay;
     }
 
 }
