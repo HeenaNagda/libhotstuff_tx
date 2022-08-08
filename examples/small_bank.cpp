@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits>
+#include <iostream>
+#include <random>
 
 #include "salticidae/util.h"
 
@@ -121,28 +123,91 @@ void SmallBank::transaction_split(std::vector<std::pair<uint64_t, uint64_t>> pay
 std::pair<uint64_t,uint64_t> SmallBank::query(uint64_t user_id){
     return std::make_pair(checking_accounts[user_id], saving_accounts[user_id]);
 }
+
+class SmallBankManager{
+private:
+    uint64_t n_users;
+    double prob_choose_mtx;                 /* Prob of choosing modifying transaction */
+
+    std::default_random_engine tx_generator;
+    std::bernoulli_distribution tx_distribution;
+
+    std::default_random_engine mtx_generator;
+    std::pair<uint64_t, uint64_t> random_transactions;
+    std::uniform_int_distribution<uint64_t> mtx_distribution;
+
+    std::default_random_engine user_generator;
+    std::pair<uint64_t, uint64_t> random_users;
+    std::uniform_int_distribution<uint64_t> user_distribution;
+
+
+public:
+    SmallBankManager(uint64_t n_users, double prob_choose_mtx);
+    std::vector<uint64_t> get_next_transaction();
+    std::pair<uint64_t, uint64_t> execute_transaction(uint64_t payload);
+};
+
+SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx){
+    this->n_users = n_users;
+    this->prob_choose_mtx = prob_choose_mtx;
+
+    tx_distribution = std::bernoulli_distribution(prob_choose_mtx);
+
+    random_transactions = std::make_pair(0,9);
+    mtx_distribution = std::uniform_int_distribution<uint64_t>(
+                                        random_transactions.first, 
+                                        random_transactions.second);
+    random_users = std::make_pair(10,20);
+    user_distribution = std::uniform_int_distribution<uint64_t>(
+                                        random_users.first, 
+                                        random_users.second);
+    
+    int count=0;  // count number of trues
+    for (int i=0; i<10000; ++i) if (tx_distribution(tx_generator)) ++count;
+    printf("[Choosing mtx: %d] [Not Choosing mtx: %d]\n", count, 10000-count );
+
+    for(int i=0; i<=9; i++){
+        printf("[Iteration: %d] [Tx num: %ld]\n", i, mtx_distribution(mtx_generator));
+    }
+    for(int i=10; i<=20; i++){
+        printf("[Iteration: %d] [User num: %ld]\n", i-10, user_distribution(user_generator));
+    }
+}
+
+std::vector<uint64_t> SmallBankManager::get_next_transaction(){
+    return std::vector<uint64_t>();
+}
+
+std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(uint64_t payload){
+
+}
  
+
+/******************************** Test Small Bank /********************************/
 int main(){
-    uint64_t n = 11;
-    SmallBank *bank = new SmallBank(n);
+    // uint64_t n = 11;
+    // SmallBank *bank = new SmallBank(n);
 
-    for(uint64_t i=0; i<n; i++){
-        printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
-    }
+    // for(uint64_t i=0; i<n; i++){
+    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+    // }
 
-    bank->transaction_savings(0, 10);
-    bank->deposit_checking(1,10);
-    bank->send_payment(2,3,10);
-    bank->write_check(4, 10);
-    bank->amalgamate(5);
-    std::vector<std::pair<uint64_t,uint64_t>> payors{std::make_pair(6,30), std::make_pair(7,20)};
-    std::vector<uint64_t> party{6,7,8,9,10};
-    bank->transaction_split(payors, party);
+    // bank->transaction_savings(0, 10);
+    // bank->deposit_checking(1,10);
+    // bank->send_payment(2,3,10);
+    // bank->write_check(4, 10);
+    // bank->amalgamate(5);
+    // std::vector<std::pair<uint64_t,uint64_t>> payors{std::make_pair(6,30), std::make_pair(7,20)};
+    // std::vector<uint64_t> party{6,7,8,9,10};
+    // bank->transaction_split(payors, party);
 
-    printf("\nAfter Transactions :\n\n");
-    for(uint64_t i=0; i<n; i++){
-        printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
-    }
+    // printf("\nAfter Transactions :\n\n");
+    // for(uint64_t i=0; i<n; i++){
+    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+    // }
+
+    SmallBankManager *manager = new SmallBankManager(11, 0.9);
+    manager->get_next_transaction();
 
     return 0;
 }
