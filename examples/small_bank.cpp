@@ -10,6 +10,7 @@
 #include <random>
 
 #include "salticidae/util.h"
+#include "cpp_random_distributions/zipfian_int_distribution.h"
 
 
 // #define UINT64_MAX std::numeric_limits<std::uint64_t>::max()
@@ -128,6 +129,7 @@ class SmallBankManager{
 private:
     uint64_t n_users;
     double prob_choose_mtx;                 /* Prob of choosing modifying transaction */
+     double skew_factor;
 
     std::default_random_engine tx_generator;
     std::bernoulli_distribution tx_distribution;
@@ -140,14 +142,18 @@ private:
     std::pair<uint64_t, uint64_t> random_users;
     std::uniform_int_distribution<uint64_t> user_distribution;
 
+    std::default_random_engine u_generator;
+    std::pair<uint64_t, uint64_t> random_u;
+    zipfian_int_distribution<uint64_t> u_distribution;
+
 
 public:
-    SmallBankManager(uint64_t n_users, double prob_choose_mtx);
+    SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor);
     std::vector<uint64_t> get_next_transaction();
     std::pair<uint64_t, uint64_t> execute_transaction(uint64_t payload);
 };
 
-SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx){
+SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor){
     this->n_users = n_users;
     this->prob_choose_mtx = prob_choose_mtx;
 
@@ -161,16 +167,31 @@ SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx){
     user_distribution = std::uniform_int_distribution<uint64_t>(
                                         random_users.first, 
                                         random_users.second);
+
+    random_u = std::make_pair(10,20);
+    u_distribution = zipfian_int_distribution<uint64_t>(
+                                        random_u.first,
+                                        random_u.second,
+                                        skew_factor);
     
+    printf("*****************[ Choosing mtx ]******************\n");
     int count=0;  // count number of trues
     for (int i=0; i<10000; ++i) if (tx_distribution(tx_generator)) ++count;
     printf("[Choosing mtx: %d] [Not Choosing mtx: %d]\n", count, 10000-count );
 
+    printf("*****************[ mtx distribution ]******************\n");
     for(int i=0; i<=9; i++){
         printf("[Iteration: %d] [Tx num: %ld]\n", i, mtx_distribution(mtx_generator));
     }
+
+    printf("*****************[ user distribution ]******************\n");
     for(int i=10; i<=20; i++){
         printf("[Iteration: %d] [User num: %ld]\n", i-10, user_distribution(user_generator));
+    }
+
+    printf("*****************[ u distribution ]******************\n");
+    for(int i=10; i<=20; i++){
+        printf("[Iteration: %d] [User num: %ld]\n", i-10, u_distribution(u_generator));
     }
 }
 
@@ -206,7 +227,7 @@ int main(){
     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
     // }
 
-    SmallBankManager *manager = new SmallBankManager(11, 0.9);
+    SmallBankManager *manager = new SmallBankManager(11, 0.9, 1);
     manager->get_next_transaction();
 
     return 0;
