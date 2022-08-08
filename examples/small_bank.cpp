@@ -6,9 +6,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <limits>
+
 #include "salticidae/util.h"
 
-#define UINT64_MAX std::numeric_limits<std::uint64_t>::max()
+
+// #define UINT64_MAX std::numeric_limits<std::uint64_t>::max()
 
 class SmallBank{
 private:
@@ -22,7 +24,7 @@ public:
     void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount);
     void write_check(uint64_t user_id, uint64_t amount);
     void amalgamate(uint64_t user_id);
-    void split_transaction(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party);
+    void transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party);
     std::pair<uint64_t,uint64_t> query(uint64_t user_id);
 };
 
@@ -84,13 +86,13 @@ void SmallBank::amalgamate(uint64_t user_id){
     saving_accounts[user_id] = 0;
 }
 
-void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party){
+void SmallBank::transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party){
     auto party_size = party.size();
-    auto amount=0;
+    auto amount_payed=0;
     for(auto payor: payors){
-        amount += payor.second;
+        amount_payed += payor.second;
     }
-    auto amount_to_pay = amount/party.size();
+    auto per_head_amount_to_pay = amount_payed/party.size();
 
     /* validity check */
     for(auto payor: payors){
@@ -100,7 +102,7 @@ void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> pay
         }
     }
     for(auto user_id: party){
-        if(UINT64_MAX-checking_accounts[user_id] < amount_to_pay){
+        if(UINT64_MAX-checking_accounts[user_id] < per_head_amount_to_pay){
             /* If amount is exceded to the maximum limit of uint64_t : discart transaction */
             return;
         }
@@ -111,7 +113,7 @@ void SmallBank::split_transaction(std::vector<std::pair<uint64_t, uint64_t>> pay
         checking_accounts[payor.first] += payor.second;
     }
     for(auto user_id: party){
-        checking_accounts[user_id] -= amount_to_pay;
+        checking_accounts[user_id] -= per_head_amount_to_pay;
     }
 
 }
@@ -120,3 +122,27 @@ std::pair<uint64_t,uint64_t> SmallBank::query(uint64_t user_id){
     return std::make_pair(checking_accounts[user_id], saving_accounts[user_id]);
 }
  
+int main(){
+    uint64_t n = 11;
+    SmallBank *bank = new SmallBank(n);
+
+    for(uint64_t i=0; i<n; i++){
+        printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+    }
+
+    bank->transaction_savings(0, 10);
+    bank->deposit_checking(1,10);
+    bank->send_payment(2,3,10);
+    bank->write_check(4, 10);
+    bank->amalgamate(5);
+    std::vector<std::pair<uint64_t,uint64_t>> payors{std::make_pair(6,30), std::make_pair(7,20)};
+    std::vector<uint64_t> party{6,7,8,9,10};
+    bank->transaction_split(payors, party);
+
+    printf("\nAfter Transactions :\n\n");
+    for(uint64_t i=0; i<n; i++){
+        printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+    }
+
+    return 0;
+}
