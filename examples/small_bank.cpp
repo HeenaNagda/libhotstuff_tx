@@ -161,7 +161,7 @@ private:
 public:
     SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor);
     std::vector<uint64_t> get_next_transaction_serialized();
-    std::pair<uint64_t, uint64_t> execute_transaction(uint64_t payload);
+    std::pair<uint64_t, uint64_t> execute_transaction(uint64_t tx_payload[]);
 };
 
 SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor){
@@ -227,6 +227,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
     {
         case 0:{
             /** void transaction_savings(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
 
             /* find next user_id */
             auto user_id = user_distribution(user_generator);
@@ -242,6 +243,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
         
         case 1:{
             /** void deposit_checking(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
 
             /* find next user_id */
             auto user_id = user_distribution(user_generator);
@@ -257,6 +259,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
         
         case 2:{
             /** void write_check(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
 
             /* find next user_id */
             auto user_id = user_distribution(user_generator);
@@ -272,6 +275,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
         
         case 3:{
             /** void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount) **/
+            /** payload format : [tx type, from user id, to user id, amount] **/
 
             /* find next user_id */
             auto from_user_id = user_distribution(user_generator);
@@ -290,7 +294,8 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
 
         case 4:{
             /** void transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party) **/
-            
+            /** payload format : [tx type, count of payors, payer_1 id, payer_1 amount, ..., party size, member_1, member_1, ...] **/
+
             /** Find the next party size users **/
             uint64_t party_size = random_number_generator(MIN_SPLIT_TX_PARTY_SIZE, MAX_SPLIT_TX_PARTY_SIZE);
             uint64_t n_payors = random_number_generator(1, party_size/2);
@@ -327,6 +332,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
 
         case 5:{
             /** void amalgamate(uint64_t user_id) **/
+            /** payload format : [tx type, user id] **/
 
             /* find next user_id */
             auto user_id = user_distribution(user_generator);
@@ -338,6 +344,7 @@ std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx
 
         case 6:{
             /** std::pair<uint64_t,uint64_t> query(uint64_t user_id) **/
+            /** payload format : [tx type, user id] **/
 
             /* find next user_id */
             auto user_id = user_distribution(user_generator);
@@ -359,8 +366,116 @@ uint64_t SmallBankManager::random_number_generator(uint64_t min, uint64_t max){
 }
 
 
-std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(uint64_t payload){
+std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(uint64_t tx_payload[]){
+    std::pair<uint64_t, uint64_t> accounts = std::make_pair(0,0);
+    size_t idx = 0;
+    idx++;
 
+    switch (tx_payload[0])
+    {
+        case 0:{
+            /** void transaction_savings(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
+            
+            auto user_id = tx_payload[idx++];
+            auto amount = tx_payload[idx++];   
+            bank->transaction_savings(user_id, amount);   
+
+            break;
+        }
+            
+        
+        case 1:{
+            /** void deposit_checking(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
+
+            auto user_id = tx_payload[idx++];
+            auto amount = tx_payload[idx++];
+            bank->deposit_checking(user_id, amount);
+            
+            break;
+        }
+            
+        
+        case 2:{
+            /** void write_check(uint64_t user_id, uint64_t amount) **/
+            /** payload format : [tx type, user id, amount] **/
+
+            auto user_id = tx_payload[idx++];
+            auto amount = tx_payload[idx++];
+            bank->write_check(user_id,amount);
+            
+            break;
+        }
+            
+        
+        case 3:{
+            /** void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount) **/
+            /** payload format : [tx type, from user id, to user id, amount] **/
+
+            auto from_user_id = tx_payload[idx++];
+            auto to_user_id = tx_payload[idx++];
+            auto amount = tx_payload[idx++];
+            bank->send_payment(from_user_id, to_user_id, amount);
+            
+            break; 
+        }
+            
+
+        case 4:{
+            /** void transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party) **/
+            /** payload format : [tx type, count of payors, payer_1 id, payer_1 amount, ..., party size, member_1, member_1, ...] **/
+
+            auto n_payors = tx_payload[idx++];
+
+            std::vector<std::pair<uint64_t, uint64_t>> payors; 
+            for(int i=0; i<n_payors; i++){
+                auto payor_id = tx_payload[idx++];
+                auto payor_amount = tx_payload[idx++];
+                payors.push_back(std::make_pair(payor_id, payor_amount));
+            }
+            
+            auto party_size = tx_payload[idx++];
+
+            std::vector<uint64_t> party;
+            for(int i=0; i<party_size; i++){
+                auto user_id = tx_payload[idx++];
+                party.push_back(user_id);
+            }
+
+            bank->transaction_split(payors, party);
+            
+            break;
+        }
+            
+
+        case 5:{
+            /** void amalgamate(uint64_t user_id) **/
+            /** payload format : [tx type, user id] **/
+
+            auto user_id = tx_payload[idx++];
+            bank->amalgamate(user_id);
+            
+            break;
+        }
+            
+
+        case 6:{
+            /** std::pair<uint64_t,uint64_t> query(uint64_t user_id) **/
+            /** payload format : [tx type, user id] **/
+
+            auto user_id = tx_payload[idx++];
+            accounts = bank->query(user_id);
+            
+            break;
+        }  
+        
+        default:
+            fprintf(stderr, "Wrong transaction type received at the time of execution");
+            break;
+    }
+
+    return accounts;
 }
 
 
