@@ -13,7 +13,11 @@
 #include "cpp_random_distributions/zipfian_int_distribution.h"
 
 
-// #define UINT64_MAX std::numeric_limits<std::uint64_t>::max()
+#define TX_TYPES 7
+#define MIN_SPLIT_TX_PARTY_SIZE 3
+#define MAX_SPLIT_TX_PARTY_SIZE 10
+
+
 
 class SmallBank{
 private:
@@ -22,12 +26,19 @@ private:
     std::vector<uint64_t> saving_accounts;
 public:
     SmallBank(uint64_t n_users);
+    /* tx_type = 0 */
     void transaction_savings(uint64_t user_id, uint64_t amount);
+    /* tx_type = 1 */    
     void deposit_checking(uint64_t user_id, uint64_t amount);
-    void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount);
+    /* tx_type = 2 */
     void write_check(uint64_t user_id, uint64_t amount);
-    void amalgamate(uint64_t user_id);
+    /* tx_type = 3 */
+    void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount);
+    /* tx_type = 4 */
     void transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party);
+    /* tx_type = 5 */
+    void amalgamate(uint64_t user_id);
+    /* tx_type = 6 */
     std::pair<uint64_t,uint64_t> query(uint64_t user_id);
 };
 
@@ -61,17 +72,6 @@ void SmallBank::deposit_checking(uint64_t user_id, uint64_t amount){
     checking_accounts[user_id] += amount;
 }
 
-void SmallBank::send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount){
-    if(checking_accounts[from_user_id]<amount
-        || UINT64_MAX-checking_accounts[to_user_id] < amount){
-        /* If the from_user_id has not sufficient amount in the checking account OR */
-        /* If to_user_id amount is exceded to the maximum limit of uint64_t : discart transaction */
-        return;
-    }
-    checking_accounts[from_user_id] -= amount;
-    checking_accounts[to_user_id] += amount;
-}
-
 void SmallBank::write_check(uint64_t user_id, uint64_t amount){
     if(checking_accounts[user_id]<amount){
         /* If the user has not sufficient amount in the checking account : discart transaction */
@@ -87,6 +87,17 @@ void SmallBank::amalgamate(uint64_t user_id){
     }
     checking_accounts[user_id] += saving_accounts[user_id];
     saving_accounts[user_id] = 0;
+}
+
+void SmallBank::send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount){
+    if(checking_accounts[from_user_id]<amount
+        || UINT64_MAX-checking_accounts[to_user_id] < amount){
+        /* If the from_user_id has not sufficient amount in the checking account OR */
+        /* If to_user_id amount is exceded to the maximum limit of uint64_t : discart transaction */
+        return;
+    }
+    checking_accounts[from_user_id] -= amount;
+    checking_accounts[to_user_id] += amount;
 }
 
 void SmallBank::transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party){
@@ -127,51 +138,52 @@ std::pair<uint64_t,uint64_t> SmallBank::query(uint64_t user_id){
 
 class SmallBankManager{
 private:
+    SmallBank *bank;
+
     uint64_t n_users;
     double prob_choose_mtx;                 /* Prob of choosing modifying transaction */
-     double skew_factor;
+    double skew_factor;                     /* Skewness for zipfian distribution */
 
     std::default_random_engine tx_generator;
     std::bernoulli_distribution tx_distribution;
 
     std::default_random_engine mtx_generator;
-    std::pair<uint64_t, uint64_t> random_transactions;
+    std::pair<uint64_t, uint64_t> random_mtx;
     std::uniform_int_distribution<uint64_t> mtx_distribution;
 
     std::default_random_engine user_generator;
     std::pair<uint64_t, uint64_t> random_users;
-    std::uniform_int_distribution<uint64_t> user_distribution;
+    zipfian_int_distribution<uint64_t> user_distribution;
 
-    std::default_random_engine u_generator;
-    std::pair<uint64_t, uint64_t> random_u;
-    zipfian_int_distribution<uint64_t> u_distribution;
-
+    std::vector<uint64_t> get_next_transaction_by_type(uint64_t tx_type);
+    uint64_t random_number_generator(uint64_t min, uint64_t max);
 
 public:
     SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor);
-    std::vector<uint64_t> get_next_transaction();
+    std::vector<uint64_t> get_next_transaction_serialized();
     std::pair<uint64_t, uint64_t> execute_transaction(uint64_t payload);
 };
 
 SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor){
+    this->bank = new SmallBank(n_users);
+
     this->n_users = n_users;
     this->prob_choose_mtx = prob_choose_mtx;
 
+    /* initialize random seed: */
+    srand (time(NULL));
+
     tx_distribution = std::bernoulli_distribution(prob_choose_mtx);
 
-    random_transactions = std::make_pair(0,9);
+    random_mtx = std::make_pair(0,TX_TYPES-2);
     mtx_distribution = std::uniform_int_distribution<uint64_t>(
-                                        random_transactions.first, 
-                                        random_transactions.second);
-    random_users = std::make_pair(10,20);
-    user_distribution = std::uniform_int_distribution<uint64_t>(
-                                        random_users.first, 
-                                        random_users.second);
+                                        random_mtx.first, 
+                                        random_mtx.second);
 
-    random_u = std::make_pair(10,20);
-    u_distribution = zipfian_int_distribution<uint64_t>(
-                                        random_u.first,
-                                        random_u.second,
+    random_users = std::make_pair(0,n_users-1);
+    user_distribution = zipfian_int_distribution<uint64_t>(
+                                        random_users.first,
+                                        random_users.second,
                                         skew_factor);
     
     printf("*****************[ Choosing mtx ]******************\n");
@@ -184,24 +196,174 @@ SmallBankManager::SmallBankManager(uint64_t n_users, double prob_choose_mtx, dou
         printf("[Iteration: %d] [Tx num: %ld]\n", i, mtx_distribution(mtx_generator));
     }
 
-    printf("*****************[ user distribution ]******************\n");
+    printf("*****************[ u distribution ]******************\n");
     for(int i=10; i<=20; i++){
         printf("[Iteration: %d] [User num: %ld]\n", i-10, user_distribution(user_generator));
     }
+}
 
-    printf("*****************[ u distribution ]******************\n");
-    for(int i=10; i<=20; i++){
-        printf("[Iteration: %d] [User num: %ld]\n", i-10, u_distribution(u_generator));
+std::vector<uint64_t> SmallBankManager::get_next_transaction_serialized(){
+    uint64_t tx_type;
+    uint64_t user_id;
+
+    /** Find the next transaction type **/
+    if(tx_distribution(tx_generator)){
+        /* Modifying transactions are chosen */
+        tx_type = mtx_distribution(mtx_generator);
     }
+    else{
+        /* Query transaction is chosen */
+        tx_type = TX_TYPES-1;
+    }
+
+    return get_next_transaction_by_type(tx_type);
 }
 
-std::vector<uint64_t> SmallBankManager::get_next_transaction(){
-    return std::vector<uint64_t>();
+std::vector<uint64_t> SmallBankManager::get_next_transaction_by_type(uint64_t tx_type){
+    std::vector<uint64_t> tx_payload;
+    tx_payload.push_back(tx_type); 
+
+    switch (tx_type)
+    {
+        case 0:{
+            /** void transaction_savings(uint64_t user_id, uint64_t amount) **/
+
+            /* find next user_id */
+            auto user_id = user_distribution(user_generator);
+            tx_payload.push_back(user_id);
+            /* find random saving amount */
+            auto saving_amount = bank->query(user_id).second;
+            auto amount = random_number_generator(0,(UINT64_MAX-saving_amount)/2);
+            tx_payload.push_back(amount);
+            
+            break;
+        }
+            
+        
+        case 1:{
+            /** void deposit_checking(uint64_t user_id, uint64_t amount) **/
+
+            /* find next user_id */
+            auto user_id = user_distribution(user_generator);
+            tx_payload.push_back(user_id);
+            /* find random checking amount */
+            auto checking_amount = bank->query(user_id).first;
+            auto amount = random_number_generator(0,(UINT64_MAX-checking_amount)/2);
+            tx_payload.push_back(amount);
+            
+            break;
+        }
+            
+        
+        case 2:{
+            /** void write_check(uint64_t user_id, uint64_t amount) **/
+
+            /* find next user_id */
+            auto user_id = user_distribution(user_generator);
+            tx_payload.push_back(user_id);
+            /* find random checking amount */
+            auto checking_amount = bank->query(user_id).first;
+            auto amount = random_number_generator(0,checking_amount);
+            tx_payload.push_back(amount);
+            
+            break;
+        }
+            
+        
+        case 3:{
+            /** void send_payment(uint64_t from_user_id, uint64_t to_user_id, uint64_t amount) **/
+
+            /* find next user_id */
+            auto from_user_id = user_distribution(user_generator);
+            auto to_user_id = user_distribution(user_generator);
+            tx_payload.push_back(from_user_id);
+            tx_payload.push_back(to_user_id);
+            /* find random checking amount */
+            auto from_checking_amount = bank->query(from_user_id).first;
+            auto to_checking_amount = bank->query(to_user_id).first;
+            auto amount = random_number_generator(0,std::min<uint64_t>(from_checking_amount, UINT64_MAX-to_checking_amount));
+            tx_payload.push_back(amount);
+            
+            break; 
+        }
+            
+
+        case 4:{
+            /** void transaction_split(std::vector<std::pair<uint64_t, uint64_t>> payors, std::vector<uint64_t> party) **/
+            
+            /** Find the next party size users **/
+            uint64_t party_size = random_number_generator(MIN_SPLIT_TX_PARTY_SIZE, MAX_SPLIT_TX_PARTY_SIZE);
+            uint64_t n_payors = random_number_generator(1, party_size/2);
+            uint64_t user_id_start = user_distribution(user_generator);
+            while(user_id_start+party_size > n_users){
+                user_id_start = user_distribution(user_generator);
+            }
+
+            /** find the max amount that can be split **/
+            uint64_t max_amount = 0;
+            for(uint64_t user_id=user_id_start; user_id<user_id_start+n_payors; user_id++){
+                max_amount = std::min(max_amount, bank->query(user_id).first);
+            }
+            for(uint64_t user_id=user_id_start+n_payors; user_id<user_id_start+party_size; user_id++){
+                max_amount = std::min(max_amount, UINT64_MAX - bank->query(user_id).first);
+            }
+            
+            /* update transaction payload */
+            tx_payload.push_back(n_payors);
+            for(uint64_t user_id=user_id_start; user_id<user_id_start+n_payors; user_id++){
+                tx_payload.push_back(user_id);
+                uint64_t amount = random_number_generator(0,max_amount/n_payors);
+                tx_payload.push_back(amount);
+            }
+
+            tx_payload.push_back(party_size);
+            for(uint64_t user_id=user_id_start; user_id<user_id_start+n_payors; user_id++){
+                tx_payload.push_back(user_id);
+            }
+            
+            break;
+        }
+            
+
+        case 5:{
+            /** void amalgamate(uint64_t user_id) **/
+
+            /* find next user_id */
+            auto user_id = user_distribution(user_generator);
+            tx_payload.push_back(user_id);
+            
+            break;
+        }
+            
+
+        case 6:{
+            /** std::pair<uint64_t,uint64_t> query(uint64_t user_id) **/
+
+            /* find next user_id */
+            auto user_id = user_distribution(user_generator);
+            tx_payload.push_back(user_id);
+            
+            break;
+        }   
+
+        default:
+            fprintf(stderr, "Wrong transaction type at the time of serialization");
+        break;
+    }
+
+    return tx_payload;
 }
+
+uint64_t SmallBankManager::random_number_generator(uint64_t min, uint64_t max){
+    return (rand() % (max-min+1)) + min;
+}
+
 
 std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(uint64_t payload){
 
 }
+
+
  
 
 /******************************** Test Small Bank /********************************/
@@ -227,8 +389,8 @@ int main(){
     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
     // }
 
-    SmallBankManager *manager = new SmallBankManager(11, 0.9, 1);
-    manager->get_next_transaction();
+    SmallBankManager *manager = new SmallBankManager(11, 0.9, 0.99);
+    manager->get_next_transaction_serialized();
 
     return 0;
 }
