@@ -22,6 +22,8 @@
 #include "hotstuff/entity.h"
 #include "hotstuff/consensus.h"
 
+#define HOTSTUFF_CMD_REQSIZE 50
+
 namespace hotstuff {
 
 struct MsgReqCmd {
@@ -65,7 +67,7 @@ class CommandDummy: public Command {
     uint32_t n;
     uint256_t hash;
 #if HOTSTUFF_CMD_REQSIZE > 0
-    uint8_t payload[HOTSTUFF_CMD_REQSIZE];
+    uint64_t payload[HOTSTUFF_CMD_REQSIZE];
 #endif
 
     public:
@@ -75,18 +77,31 @@ class CommandDummy: public Command {
     CommandDummy(uint32_t cid, uint32_t n):
         cid(cid), n(n), hash(salticidae::get_hash(*this)) {}
 
+    CommandDummy(uint32_t cid, uint32_t n, std::vector<uint64_t> payload):
+        cid(cid), n(n), hash(salticidae::get_hash(*this)) {
+            for(size_t i=0; i<payload.size(); i++){
+                this->payload[i] = payload[i];
+            }
+    }
+
     void serialize(DataStream &s) const override {
         s << cid << n;
 #if HOTSTUFF_CMD_REQSIZE > 0
-        s.put_data(payload, payload + sizeof(payload));
+        // s.put_data(payload, payload + sizeof(payload));
+        for(uint64_t data: payload){
+            s << data;
+        }
 #endif
     }
 
     void unserialize(DataStream &s) override {
         s >> cid >> n;
 #if HOTSTUFF_CMD_REQSIZE > 0
-        auto base = s.get_data_inplace(HOTSTUFF_CMD_REQSIZE);
-        memmove(payload, base, sizeof(payload));
+        // auto base = s.get_data_inplace(HOTSTUFF_CMD_REQSIZE);
+        // memmove(payload, base, sizeof(payload));
+        for(size_t i=0; i<HOTSTUFF_CMD_REQSIZE; i++){
+            s >> payload[i];
+        }
 #endif
         hash = salticidae::get_hash(*this);
     }
