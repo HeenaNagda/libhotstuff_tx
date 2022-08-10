@@ -36,6 +36,8 @@
 #include "hotstuff/hotstuff.h"
 #include "hotstuff/liveness.h"
 
+#include "small_bank.h"
+
 using salticidae::MsgNetwork;
 using salticidae::ClientNetwork;
 using salticidae::ElapsedTime;
@@ -92,9 +94,18 @@ class HotStuffApp: public HotStuff {
     salticidae::BoxObj<salticidae::ThreadCall> resp_tcall;
     salticidae::BoxObj<salticidae::ThreadCall> req_tcall;
 
+    /* database manager for in-memory database (Small Bank) */
+    SmallBankManager *small_bank_manager;
+
     void client_request_cmd_handler(MsgReqCmd &&, const conn_t &);
 
     static command_t parse_cmd(DataStream &s) {
+        auto cmd = new CommandDummy();
+        s >> *cmd;
+        return cmd;
+    }
+
+    static CommandDummy* parse_cmd_with_payload(DataStream &s) {
         auto cmd = new CommandDummy();
         s >> *cmd;
         return cmd;
@@ -313,6 +324,10 @@ HotStuffApp::HotStuffApp(uint32_t blk_size,
     ec(ec),
     cn(req_ec, clinet_config),
     clisten_addr(clisten_addr) {
+
+    // TODO: Parameters needs to be taken from configuration file
+    small_bank_manager = new SmallBankManager(10, 0.5, 0.5);
+
     /* prepare the thread used for sending back confirmations */
     resp_tcall = new salticidae::ThreadCall(resp_ec);
     req_tcall = new salticidae::ThreadCall(req_ec);
@@ -337,10 +352,17 @@ HotStuffApp::HotStuffApp(uint32_t blk_size,
 
 void HotStuffApp::client_request_cmd_handler(MsgReqCmd &&msg, const conn_t &conn) {
     const NetAddr addr = conn->get_addr();
-    auto cmd = parse_cmd(msg.serialized);
+
+    // auto cmd = parse_cmd(msg.serialized);
+    // const auto &cmd_hash = cmd->get_hash();
+
+    auto cmd = parse_cmd_with_payload(msg.serialized);
     const auto &cmd_hash = cmd->get_hash();
+    
     HOTSTUFF_LOG_DEBUG("processing %s", std::string(*cmd).c_str());
-    exec_command(cmd_hash, [this, addr](Finality fin) {
+    exec_command(cmd_hash, [this, addr, cmd](Finality fin) {
+        /* Execute the transaction before sending response to the client */
+        small_bank_manager->execute_transaction(cmd->get_payload());
         resp_queue.enqueue(std::make_pair(fin, addr));
     });
 }

@@ -117,6 +117,14 @@ class CommandDummy: public Command {
         return hash;
     }
 
+    size_t get_payload_size() {
+        return payload_size;
+    }
+
+    const uint64_t* get_payload(){
+        return payload;
+    }
+
     bool verify() const override {
         return true;
     }

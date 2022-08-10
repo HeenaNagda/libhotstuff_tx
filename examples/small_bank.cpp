@@ -301,7 +301,7 @@ uint64_t SmallBankManager::random_number_generator(uint64_t min, uint64_t max){
 }
 
 
-std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(uint64_t tx_payload[]){
+std::pair<uint64_t, uint64_t> SmallBankManager::execute_transaction(const uint64_t* tx_payload){
     std::pair<uint64_t, uint64_t> accounts = std::make_pair(0,0);
     size_t idx = 0;
     idx++;
