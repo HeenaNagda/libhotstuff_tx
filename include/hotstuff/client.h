@@ -67,7 +67,9 @@ class CommandDummy: public Command {
     uint32_t n;
     uint256_t hash;
 #if HOTSTUFF_CMD_REQSIZE > 0
-    uint64_t payload[HOTSTUFF_CMD_REQSIZE];
+    size_t payload_size;
+    // uint64_t payload[HOTSTUFF_CMD_REQSIZE];
+    uint64_t *payload;
 #endif
 
     public:
@@ -79,7 +81,9 @@ class CommandDummy: public Command {
 
     CommandDummy(uint32_t cid, uint32_t n, std::vector<uint64_t> payload):
         cid(cid), n(n), hash(salticidae::get_hash(*this)) {
-            for(size_t i=0; i<payload.size(); i++){
+            payload_size = payload.size();
+            this->payload = new uint64_t[payload_size];
+            for(size_t i=0; i<payload_size; i++){
                 this->payload[i] = payload[i];
             }
     }
@@ -88,8 +92,9 @@ class CommandDummy: public Command {
         s << cid << n;
 #if HOTSTUFF_CMD_REQSIZE > 0
         // s.put_data(payload, payload + sizeof(payload));
-        for(uint64_t data: payload){
-            s << data;
+        s << payload_size;
+        for(size_t i=0; i<payload_size; i++){
+            s << this->payload[i];
         }
 #endif
     }
@@ -99,6 +104,8 @@ class CommandDummy: public Command {
 #if HOTSTUFF_CMD_REQSIZE > 0
         // auto base = s.get_data_inplace(HOTSTUFF_CMD_REQSIZE);
         // memmove(payload, base, sizeof(payload));
+        s >> payload_size;
+        payload = new uint64_t[payload_size];
         for(size_t i=0; i<HOTSTUFF_CMD_REQSIZE; i++){
             s >> payload[i];
         }
