@@ -106,7 +106,7 @@ class CommandDummy: public Command {
         // memmove(payload, base, sizeof(payload));
         s >> payload_size;
         payload = new uint64_t[payload_size];
-        for(size_t i=0; i<HOTSTUFF_CMD_REQSIZE; i++){
+        for(size_t i=0; i<payload_size; i++){
             s >> payload[i];
         }
 #endif
