@@ -29,6 +29,7 @@
 #include "hotstuff/util.h"
 #include "hotstuff/type.h"
 #include "hotstuff/client.h"
+#include "small_bank.h"
 
 using salticidae::Config;
 
@@ -65,6 +66,7 @@ std::unordered_map<const uint256_t, Request> waiting;
 std::vector<NetAddr> replicas;
 std::vector<std::pair<struct timeval, double>> elapsed;
 std::unique_ptr<Net> mn;
+SmallBankManager *small_bank_manager;
 
 void connect_all() {
     for (size_t i = 0; i < replicas.size(); i++)
@@ -74,7 +76,8 @@ void connect_all() {
 bool try_send(bool check = true) {
     if ((!check || waiting.size() < max_async_num) && max_iter_num)
     {
-        auto cmd = new CommandDummy(cid, cnt++);
+        // auto cmd = new CommandDummy(cid, cnt++);
+        auto cmd = new CommandDummy(cid, cnt++, small_bank_manager->get_next_transaction_serialized());
         MsgReqCmd msg(*cmd);
         for (auto &p: conns) mn->send_msg(msg, p.second);
 #ifndef HOTSTUFF_ENABLE_BENCHMARK
@@ -118,6 +121,9 @@ std::pair<std::string, std::string> split_ip_port_cport(const std::string &s) {
 }
 
 int main(int argc, char **argv) {
+    // TODO: Parameters needs to be taken from configuration file
+    small_bank_manager = new SmallBankManager(10, 0.8, 0.5);
+
     Config config("hotstuff.conf");
 
     auto opt_idx = Config::OptValInt::create(0);

@@ -59,18 +59,19 @@ private:
     std::pair<uint64_t, uint64_t> random_users;
     zipfian_int_distribution<uint64_t> user_distribution;
 
-    // std::vector<uint64_t> get_next_transaction_by_type(uint64_t tx_type);
-    // uint64_t random_number_generator(uint64_t min, uint64_t max);
+    std::vector<uint64_t> get_next_transaction_by_type(uint64_t tx_type);
+    uint64_t random_number_generator(uint64_t min, uint64_t max);
+    std::pair<uint64_t,uint64_t> show_account_info(uint64_t user_id);
 
 public:
     SmallBankManager(uint64_t n_users, double prob_choose_mtx, double skew_factor);
     std::vector<uint64_t> get_next_transaction_serialized();
     std::pair<uint64_t, uint64_t> execute_transaction(uint64_t tx_payload[]);
 
-    /* Just for testing they are public */
-    std::vector<uint64_t> get_next_transaction_by_type(uint64_t tx_type);
-    uint64_t random_number_generator(uint64_t min, uint64_t max);
-    std::pair<uint64_t,uint64_t> show_account_info(uint64_t user_id);
+    // /* Just for testing they are public */
+    // std::vector<uint64_t> get_next_transaction_by_type(uint64_t tx_type);
+    // uint64_t random_number_generator(uint64_t min, uint64_t max);
+    // std::pair<uint64_t,uint64_t> show_account_info(uint64_t user_id);
     
 };
 

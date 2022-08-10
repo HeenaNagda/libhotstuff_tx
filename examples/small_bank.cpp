@@ -419,61 +419,61 @@ std::pair<uint64_t,uint64_t> SmallBankManager::show_account_info(uint64_t user_i
  
 
 /******************************** Test Small Bank /********************************/
-int main(){
-    // uint64_t n = 11;
-    // SmallBank *bank = new SmallBank(n);
+// int main(){
+//     // uint64_t n = 11;
+//     // SmallBank *bank = new SmallBank(n);
 
-    // for(uint64_t i=0; i<n; i++){
-    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
-    // }
+//     // for(uint64_t i=0; i<n; i++){
+//     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+//     // }
 
-    // bank->transaction_savings(0, 10);
-    // bank->deposit_checking(1,10);
-    // bank->send_payment(2,3,10);
-    // bank->write_check(4, 10);
-    // bank->amalgamate(5);
-    // std::vector<std::pair<uint64_t,uint64_t>> payors{std::make_pair(6,30), std::make_pair(7,20)};
-    // std::vector<uint64_t> party{6,7,8,9,10};
-    // bank->transaction_split(payors, party);
+//     // bank->transaction_savings(0, 10);
+//     // bank->deposit_checking(1,10);
+//     // bank->send_payment(2,3,10);
+//     // bank->write_check(4, 10);
+//     // bank->amalgamate(5);
+//     // std::vector<std::pair<uint64_t,uint64_t>> payors{std::make_pair(6,30), std::make_pair(7,20)};
+//     // std::vector<uint64_t> party{6,7,8,9,10};
+//     // bank->transaction_split(payors, party);
 
-    // printf("\nAfter Transactions :\n\n");
-    // for(uint64_t i=0; i<n; i++){
-    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
-    // }
+//     // printf("\nAfter Transactions :\n\n");
+//     // for(uint64_t i=0; i<n; i++){
+//     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, bank->query(i).first, bank->query(i).second);
+//     // }
 
-    // uint64_t n = 11;
-    // double pm = 0.5;
-    // uint64_t skew = 0.99; 
-    // SmallBankManager *manager = new SmallBankManager(n, pm, skew);
+//     // uint64_t n = 11;
+//     // double pm = 0.5;
+//     // uint64_t skew = 0.99; 
+//     // SmallBankManager *manager = new SmallBankManager(n, pm, skew);
 
-    // for(uint64_t i=0; i<n; i++){
-    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, manager->show_account_info(i).first, manager->show_account_info(i).second);
-    // }
+//     // for(uint64_t i=0; i<n; i++){
+//     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", i, manager->show_account_info(i).first, manager->show_account_info(i).second);
+//     // }
 
-    // for(uint64_t tx_type=0; tx_type<7; tx_type++){
+//     // for(uint64_t tx_type=0; tx_type<7; tx_type++){
 
-    //     for(int i=0; i<10; i++){
-    //         printf("\n[TX %ld] ", tx_type);
-    //         auto payload = manager->get_next_transaction_by_type(tx_type);
-    //         for(auto element: payload){
-    //             printf("[ %ld ] ", element);
-    //         }
-    //     }
-    //     printf("\n-------------------------------\n");
-    // }
+//     //     for(int i=0; i<10; i++){
+//     //         printf("\n[TX %ld] ", tx_type);
+//     //         auto payload = manager->get_next_transaction_by_type(tx_type);
+//     //         for(auto element: payload){
+//     //             printf("[ %ld ] ", element);
+//     //         }
+//     //     }
+//     //     printf("\n-------------------------------\n");
+//     // }
 
-    // for(int i=0; i<10; i++){
-    //     auto payload = manager->get_next_transaction_serialized();
-    //     for(auto element: payload){
-    //         printf("[ %ld ] ", element);
-    //     }
-    //     manager->execute_transaction(&payload[0]);
-    //     printf("\n");
-    //     printf("[User: %ld] [C: %ld] [S: %ld]\n", payload[1], manager->show_account_info(payload[1]).first, manager->show_account_info(payload[1]).second);
-    // }
+//     // for(int i=0; i<10; i++){
+//     //     auto payload = manager->get_next_transaction_serialized();
+//     //     for(auto element: payload){
+//     //         printf("[ %ld ] ", element);
+//     //     }
+//     //     manager->execute_transaction(&payload[0]);
+//     //     printf("\n");
+//     //     printf("[User: %ld] [C: %ld] [S: %ld]\n", payload[1], manager->show_account_info(payload[1]).first, manager->show_account_info(payload[1]).second);
+//     // }
     
     
 
-    // printf("\n");
-    return 0;
-}
+//     // printf("\n");
+//     return 0;
+// }
