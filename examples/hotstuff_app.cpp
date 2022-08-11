@@ -353,16 +353,34 @@ HotStuffApp::HotStuffApp(uint32_t blk_size,
 void HotStuffApp::client_request_cmd_handler(MsgReqCmd &&msg, const conn_t &conn) {
     const NetAddr addr = conn->get_addr();
 
+
     // auto cmd = parse_cmd(msg.serialized);
     // const auto &cmd_hash = cmd->get_hash();
 
     auto cmd = parse_cmd_with_payload(msg.serialized);
     const auto &cmd_hash = cmd->get_hash();
+
+
+    std::string data = "";
+    for(int i=0; i<cmd->get_payload_size(); i++){
+        data += std::to_string(cmd->get_payload()[i]) + " ";
+    }
+    HOTSTUFF_LOG_INFO("[[client_request_cmd_handler]] Payload Received [%.10s] = %s", get_hex(cmd->get_hash()).c_str(), data.c_str());
     
     HOTSTUFF_LOG_DEBUG("processing %s", std::string(*cmd).c_str());
     exec_command(cmd_hash, [this, addr, cmd](Finality fin) {
         /* Execute the transaction before sending response to the client */
         small_bank_manager->execute_transaction(cmd->get_payload());
+
+
+        std::string data = "";
+        for(int i=0; i<cmd->get_payload_size(); i++){
+            data += std::to_string(cmd->get_payload()[i]) + " ";
+        }
+        HOTSTUFF_LOG_INFO("[[Callback]] Payload Executed [%.10s] = %s", get_hex(cmd->get_hash()).c_str(), data.c_str());
+        
+        
+        
         resp_queue.enqueue(std::make_pair(fin, addr));
     });
 }

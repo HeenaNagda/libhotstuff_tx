@@ -80,12 +80,15 @@ class CommandDummy: public Command {
         cid(cid), n(n), hash(salticidae::get_hash(*this)) {}
 
     CommandDummy(uint32_t cid, uint32_t n, std::vector<uint64_t> payload):
-        cid(cid), n(n), hash(salticidae::get_hash(*this)) {
+        cid(cid), n(n) {
+
             payload_size = payload.size();
             this->payload = new uint64_t[payload_size];
             for(size_t i=0; i<payload_size; i++){
                 this->payload[i] = payload[i];
             }
+
+            hash = salticidae::get_hash(*this);
     }
 
     void serialize(DataStream &s) const override {
