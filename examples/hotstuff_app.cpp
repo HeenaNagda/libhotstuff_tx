@@ -96,6 +96,7 @@ class HotStuffApp: public HotStuff {
 
     /* database manager for in-memory database (Small Bank) */
     SmallBankManager *small_bank_manager;
+    
 
     void client_request_cmd_handler(MsgReqCmd &&, const conn_t &);
 
@@ -129,7 +130,10 @@ class HotStuffApp: public HotStuff {
 #endif
 
     public:
-    HotStuffApp(uint32_t blk_size,
+    HotStuffApp(uint64_t sb_n_users,
+                double sb_prob_choose_mtx,
+                double sb_skew_factor,
+                uint32_t blk_size,
                 double stat_period,
                 double impeach_timeout,
                 ReplicaID idx,
@@ -161,6 +165,9 @@ int main(int argc, char **argv) {
     ElapsedTime elapsed;
     elapsed.start();
 
+    auto opt_sb_users = Config::OptValInt::create(10);
+    auto opt_sb_prob_choose_mtx = Config::OptValDouble::create(0.9);
+    auto opt_sb_skew_factor = Config::OptValDouble::create(0.1);
     auto opt_blk_size = Config::OptValInt::create(1);
     auto opt_parent_limit = Config::OptValInt::create(-1);
     auto opt_stat_period = Config::OptValDouble::create(10);
@@ -185,6 +192,9 @@ int main(int argc, char **argv) {
     auto opt_max_rep_msg = Config::OptValInt::create(4 << 20); // 4M by default
     auto opt_max_cli_msg = Config::OptValInt::create(65536); // 64K by default
 
+    config.add_opt("sb-users", opt_sb_users, Config::SET_VAL);
+    config.add_opt("sb-prob-choose_mtx", opt_sb_prob_choose_mtx, Config::SET_VAL);
+    config.add_opt("sb-skew-factor", opt_sb_skew_factor, Config::SET_VAL);
     config.add_opt("block-size", opt_blk_size, Config::SET_VAL);
     config.add_opt("parent-limit", opt_parent_limit, Config::SET_VAL);
     config.add_opt("stat-period", opt_stat_period, Config::SET_VAL);
@@ -273,7 +283,10 @@ int main(int argc, char **argv) {
     clinet_config
         .burst_size(opt_cliburst->get())
         .nworker(opt_clinworker->get());
-    papp = new HotStuffApp(opt_blk_size->get(),
+    papp = new HotStuffApp(opt_sb_users->get(),
+                        opt_sb_prob_choose_mtx->get(),
+                        opt_sb_skew_factor->get(),
+                        opt_blk_size->get(),
                         opt_stat_period->get(),
                         opt_imp_timeout->get(),
                         idx,
@@ -305,7 +318,10 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-HotStuffApp::HotStuffApp(uint32_t blk_size,
+HotStuffApp::HotStuffApp(uint64_t sb_n_users,
+                        double sb_prob_choose_mtx,
+                        double sb_skew_factor,
+                        uint32_t blk_size,
                         double stat_period,
                         double impeach_timeout,
                         ReplicaID idx,
@@ -326,7 +342,7 @@ HotStuffApp::HotStuffApp(uint32_t blk_size,
     clisten_addr(clisten_addr) {
 
     // TODO: Parameters needs to be taken from configuration file
-    small_bank_manager = new SmallBankManager(10, 0.5, 0.5);
+    small_bank_manager = new SmallBankManager(sb_n_users, sb_prob_choose_mtx, sb_skew_factor);
 
     /* prepare the thread used for sending back confirmations */
     resp_tcall = new salticidae::ThreadCall(resp_ec);

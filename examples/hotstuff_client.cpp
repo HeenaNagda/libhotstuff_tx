@@ -133,11 +133,13 @@ std::pair<std::string, std::string> split_ip_port_cport(const std::string &s) {
 }
 
 int main(int argc, char **argv) {
-    // TODO: Parameters needs to be taken from configuration file
-    small_bank_manager = new SmallBankManager(10, 0.8, 0.5);
+    // small_bank_manager = new SmallBankManager(10, 0.8, 0.5);
 
     Config config("hotstuff.conf");
 
+    auto opt_sb_users = Config::OptValInt::create(10);
+    auto opt_sb_prob_choose_mtx = Config::OptValDouble::create(0.9);
+    auto opt_sb_skew_factor = Config::OptValDouble::create(0.1);
     auto opt_idx = Config::OptValInt::create(0);
     auto opt_replicas = Config::OptValStrVec::create();
     auto opt_max_iter_num = Config::OptValInt::create(100);
@@ -155,6 +157,10 @@ int main(int argc, char **argv) {
     mn->reg_handler(client_resp_cmd_handler);
     mn->start();
 
+
+    config.add_opt("sb-users", opt_sb_users, Config::SET_VAL);
+    config.add_opt("sb-prob-choose_mtx", opt_sb_prob_choose_mtx, Config::SET_VAL);
+    config.add_opt("sb-skew-factor", opt_sb_skew_factor, Config::SET_VAL);
     config.add_opt("idx", opt_idx, Config::SET_VAL);
     config.add_opt("cid", opt_cid, Config::SET_VAL);
     config.add_opt("replica", opt_replicas, Config::APPEND);
@@ -186,6 +192,10 @@ int main(int argc, char **argv) {
 
     nfaulty = (replicas.size() - 1) / 3;
     HOTSTUFF_LOG_INFO("nfaulty = %zu", nfaulty);
+
+    HOTSTUFF_LOG_INFO("opt_sb_users = %ld, opt_sb_prob_choose_mtx = %f, opt_sb_skew_factor = %f", opt_sb_users->get(), opt_sb_prob_choose_mtx->get(), opt_sb_skew_factor->get());
+    small_bank_manager = new SmallBankManager(opt_sb_users->get(), opt_sb_prob_choose_mtx->get(), opt_sb_skew_factor->get());
+
     connect_all();
     while (try_send());
     ec.dispatch();
