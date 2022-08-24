@@ -341,7 +341,7 @@ HotStuffApp::HotStuffApp(uint64_t sb_n_users,
     cn(req_ec, clinet_config),
     clisten_addr(clisten_addr) {
 
-    // TODO: Parameters needs to be taken from configuration file
+    // small bank manager object
     small_bank_manager = new SmallBankManager(sb_n_users, sb_prob_choose_mtx, sb_skew_factor);
 
     /* prepare the thread used for sending back confirmations */
