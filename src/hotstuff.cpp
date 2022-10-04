@@ -464,8 +464,10 @@ void HotStuffBase::start(
                     cmd_pending_buffer.pop();
                 }
                 pmaker->beat().then([this, cmds = std::move(cmds)](ReplicaID proposer) {
-                    if (proposer == get_id())
+                    if (proposer == get_id()){
+                        HOTSTUFF_LOG_DEBUG("[[cmd_pending.reg_handler]] [R-%d] [L-%d] pacemaker beat done", get_id(), proposer);
                         on_propose(cmds, pmaker->get_parents());
+                    }
                 });
                 return true;
             }

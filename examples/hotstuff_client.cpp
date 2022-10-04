@@ -31,6 +31,8 @@
 #include "hotstuff/client.h"
 #include "small_bank.h"
 
+#define HOTSTUFF_ENABLE_BENCHMARK
+
 using salticidae::Config;
 
 using hotstuff::ReplicaID;

@@ -140,13 +140,16 @@ class PMWaitQC: public virtual PaceMaker {
 
     protected:
     void schedule_next() {
+        HOTSTUFF_LOG_DEBUG("[[schedule_next]] START, pending_beats.empty() = %d, locked = %d", pending_beats.empty(), locked);
         if (!pending_beats.empty() && !locked)
         {
+            HOTSTUFF_LOG_DEBUG("[[schedule_next]] inside");
             auto pm = pending_beats.front();
             pending_beats.pop();
             pm_qc_finish.reject();
             (pm_qc_finish = hsc->async_qc_finish(last_proposed))
                 .then([this, pm]() {
+                    HOTSTUFF_LOG_DEBUG("[[schedule_next]] async_qc_finish");
                     pm.resolve(get_proposer());
                 });
             locked = true;
@@ -179,9 +182,11 @@ class PMWaitQC: public virtual PaceMaker {
     }
 
     promise_t beat() override {
+        HOTSTUFF_LOG_DEBUG("[[beat]] Beating START");
         promise_t pm;
         pending_beats.push(pm);
         schedule_next();
+        HOTSTUFF_LOG_DEBUG("[[beat]] Beating Return");
         return pm;
     }
 
